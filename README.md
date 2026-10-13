@@ -88,14 +88,16 @@ python3 applytracker.py --serve         # 默认 http://127.0.0.1:8788
 
 以前用 Excel / 飞书表记投递，不用从零开始 —— 把旧表导进来就行。
 
-### 推荐做法：让 AI 帮你转
+### 推荐做法：把表丢给 AI，它自己读
 
-把下面这段发给你的 AI（附上你的表），它会帮你把列对上、存成 CSV、先试跑一次给你看：
+**Excel 不用你先转格式** —— `.xlsx` / `.csv` / 从表格里复制出来的一段文字，都能直接发给 AI。
+它会自己读出来、把列对上、先试跑一次给你看，你点头了它才真写进去。把下面这段连同你的表一起发给它：
 
 ```text
-我这里有一份秋招投递记录表（贴在下面 / 在某个路径）。请帮我把记录导进 applytracker：
+我这里有一份秋招投递记录表（Excel / CSV，贴在下面或放在某个路径）。请帮我把记录导进 applytracker：
 1. 先看仓库根目录的 AGENTS.md；
-2. 把我表里的列对应到 公司名称 / 岗位名称 / 状态 / 投递时间 / 网页链接 / 备注，另存成一个 UTF-8 的 CSV；
+2. 你直接读我的表（.xlsx 的话你自己解析，不用让我先另存），把列对应到
+   公司名称 / 岗位名称 / 状态 / 投递时间 / 网页链接 / 备注，落成一个 UTF-8 的 CSV；
 3. 先跑 python3 applytracker.py --import-file 那个.csv --dry-run，把结果给我看；
 4. 我看过没问题再真跑一次；
 5. 任何一步做不下去，把原始报错贴给我，别自己改代码。
@@ -108,7 +110,8 @@ python3 applytracker.py --import-file 你的表.csv           # 导入
 python3 applytracker.py --import-file 你的表.csv --dry-run # 先看一眼，不写文件
 ```
 
-`--import-file` 读的是 **UTF-8 / UTF-8-BOM 的 CSV 或 TSV**（Excel 先「另存为 CSV」）。
+`--import-file` 读的是 **UTF-8 / UTF-8-BOM 的 CSV 或 TSV**。
+Excel 的话先在「文件 → 另存为」里选 **CSV UTF-8**（不想自己转就用上面那条 AI 的路，它替你转）。
 
 - **表头自动认**，两侧空白、大小写、括号说明都忽略。认得的列名：
   - 公司名称 ← 公司名称 / 公司 / 企业 / 单位 / 应聘公司 / 公司名 / company
