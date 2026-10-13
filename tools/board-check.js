@@ -1360,19 +1360,23 @@ check('连接弹卡：页面加载后是**看不见**的（作者 display 压过
 check('连接弹卡：点开真的出现、点「取消」真的消失（隐藏不是嘴上说说）',
   mc.wrapOpen === true && mc.wrapClosed === false && mc.wrapOpenAfterCancel === false,
   JSON.stringify({ open: mc.wrapOpen, closed: mc.wrapClosed, after: mc.wrapOpenAfterCancel }));
-// 判据按「有没有凭据」二分：有凭据 → 必须写着「已连上 / 已连接」；没凭据 → 必须给个入口
-// （「没连邮箱」或 off 模式那段「邮箱通知还没接」）。**不许**在飞书模式下整条藏起来，
-// 那正是她「连完邮箱一个字都没变」的原样。
+// 判据按「凭据 + 有没有被断开」**三分**（页面 mailBar() 本来就是三支，断言不能只取两支）：
+//   ① 凭据在、在用   → 必须写着「已连上 / 已连接」（哪个邮箱也要写出来）
+//   ② 凭据在、被断开 → 必须写着「已断开 + 重新连上」（授权码还留着，别让她再去 QQ 生成一遍）
+//   ③ 完全没凭据     → 得给个入口（「没连邮箱」或 off 模式那段「邮箱通知还没接」）
+// **不许**在飞书模式下整条藏起来，那正是她「连完邮箱一个字都没变」的原样。
+// ⚠️ 只按「有没有凭据」二分会在她点过「断开」之后**永久假红**（2026-10-13 实测踩到）。
 check('邮箱连接状态那一行在（飞书模式下也必须看得见 —— 她连完邮箱就得看见这句话）',
   mc.barVisible === true && !!mc.barText &&
-  (mc.mailConfigured ? /(已连上|已连接)/.test(mc.barText)
-                     : /(没连邮箱|邮箱通知还没接)/.test(mc.barText)),
-  JSON.stringify({ vis: mc.barVisible, 有凭据: mc.mailConfigured, txt: mc.barText }));
+  (mc.mailConfigured && mc.mailEnabled ? /(已连上|已连接)/.test(mc.barText)
+   : mc.mailConfigured                 ? /已断开/.test(mc.barText) && /重新连上/.test(mc.barText)
+                                       : /(没连邮箱|邮箱通知还没接)/.test(mc.barText)),
+  JSON.stringify({ vis: mc.barVisible, 有凭据: mc.mailConfigured, 在用: mc.mailEnabled, txt: mc.barText }));
 check('非直连模式：状态行说清「哪个邮箱 + 备用直连 + 当前读的是哪个源」并给两个把手',
-  mc.mode === 'imap' || !mc.mailConfigured ||
+  mc.mode === 'imap' || !mc.mailConfigured || !mc.mailEnabled ||
   (/已连上/.test(mc.barText) && /备用直连/.test(mc.barText) &&
    /(飞书表|本地 CSV|没接数据源)/.test(mc.barText) && mc.hasUseBtn && mc.hasOffBtn),
-  JSON.stringify({ mode: mc.mode, txt: mc.barText, use: mc.hasUseBtn, off: mc.hasOffBtn }));
+  JSON.stringify({ mode: mc.mode, 在用: mc.mailEnabled, txt: mc.barText, use: mc.hasUseBtn, off: mc.hasOffBtn }));
 check('「改用直连收信」只发一次 POST /api/mail-source，且 source 字段就是 imap',
   !mc.hasUseBtn || (mc.useWrites && mc.useWrites.length === 1 &&
                     /"source"\s*:\s*"imap"/.test(mc.useWrites[0].body)),
