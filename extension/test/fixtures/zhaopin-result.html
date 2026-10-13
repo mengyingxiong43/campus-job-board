@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>长河发展银行 校园招聘</title>
+<!--
+  照她 2026-10-02 真实遇到的那一页搭的（智联 xiaoyuan.zhaopin.com 托管的校招站，
+  投完落在 /scrd/evaluation/... 这种「结果页」，网址里**没有** success 之类的字样）。
+
+  这一页专门盯一个此前没人测到的洞：
+  整页跳转过来的结果页，那句成功提示是**页面自带**的，不是"刚冒出来"的 ——
+  MutationObserver 看不到它，于是只剩"扫正文"那条只认词表的兜底路，而
+  「恭喜你已成功投递该企业！」这种语序不在词表里，整条就漏了。
+  公司名、岗位名、测评链接**全是编的**，别换成真实企业。
+-->
+<style>
+  body{margin:0;font:14px/1.7 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:#1c2430;background:#eef3fb}
+  .wrap{max-width:980px;margin:0 auto;background:#fff;min-height:100vh}
+  header{display:flex;align-items:center;gap:10px;padding:16px 26px;border-bottom:1px solid #eaeef5}
+  .logo{width:150px;height:34px;border-radius:5px;background:#c8102e;color:#fff;font-weight:700;
+        display:flex;align-items:center;justify-content:center;font-size:15px;letter-spacing:1px}
+  .steps{display:flex;gap:26px;padding:14px 26px;color:#5a6474;font-size:13.5px;border-bottom:1px solid #eaeef5}
+  .steps b{color:#1c2430}
+  .hero{padding:26px;color:#3b6ea5;font-size:17px}
+  /* 成功提示：一个紧凑的小块 —— 认得出它是"提示块"，字也不长 */
+  .apply-done{margin:6px 26px 0;padding:13px 16px;background:#eefaf3;border:1px solid #b6e3cd;
+              border-radius:8px;color:#146c43;font-size:15px;font-weight:600;text-align:center}
+  .code{margin:14px 26px 0;font-size:13px;color:#3d4653}
+  .panel{margin:18px 26px 40px;padding:18px 20px;border:1px solid #e2e7ef;border-radius:8px;background:#fafbfd;font-size:13.5px;color:#3d4653}
+  .panel a{color:#2f6fd0;word-break:break-all}
+  .tip{color:#8a93a1;font-size:12.5px;margin-top:9px}
+  .go{display:block;width:150px;margin:20px auto 0;padding:11px 0;border:none;border-radius:6px;
+      background:#2f6fd0;color:#fff;font-size:15px;cursor:pointer}
+  .nav{padding:10px 26px;font-size:13px;color:#8a93a1}
+  .nav span{margin-right:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">长河发展银行</div>
+    <div style="color:#8a93a1;font-size:12.5px">CHANGHE DEVELOPMENT BANK</div>
+  </header>
+
+  <div class="steps">
+    <span>✓ <b>选择志愿</b></span>
+    <span>✓ <b>填写简历</b></span>
+    <span>✓ <b>完成投递</b></span>
+  </div>
+
+  <div class="hero">让每段经历都发光，照亮你的下一站</div>
+
+  <!-- 要认出来的就是这一句。语序和词表里任何一种都不一样，靠的是"同一句里既有动作词又有成功词" -->
+  <div class="apply-done">恭喜你已成功投递该企业！请继续作答测评</div>
+
+  <div class="code">【1107951842】为你的专属校招编码，后续可通过该编码向招聘人员咨询相关事宜，请注意保存。</div>
+
+  <div class="panel">
+    我们已收到您投递的简历，请您继续点击按钮完成以下测评，让我们有机会进一步了解您！<br><br>
+    测评地址：<a href="https://example.invalid/assessment/login">https://example.invalid/assessment/login?projectId=1051278&amp;jobNumber=CC241024710J40844693316</a><br><br>
+    注意事项：<br>
+    1. 推荐您使用谷歌浏览器。<br>
+    2. 请在 24 小时内完成此测评。
+    <div class="tip">测评平台客服电话 400-000-0000（工作日 9:00–18:00）</div>
+  </div>
+
+  <button class="go">立即测评</button>
+
+  <div class="nav">
+    <span>我的投递记录</span>
+    <span>我的简历</span>
+    <span>职位搜索</span>
+  </div>
+</div>
+</body>
+</html>

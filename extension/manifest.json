@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "投递记录助手",
+  "version": "0.6.2",
+  "description": "页面右侧常驻一个「记一笔」小标签，投完点一下就能记，不依赖任何自动识别；同时也会在你点完提交、页面弹出成功提示时自动弹卡（整页跳走、语序不同也认）。公司名优先拿你自己的投递记录 / 待投递 / 机会库当字典，在页面文字里认，认不出再退回页面标签、logo、上一个岗位页，并把猜来的值标成黄框提醒你核对。",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "投递记录助手"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

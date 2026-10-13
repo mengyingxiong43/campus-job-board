@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>云溪招聘</title>
+</head>
+<body>
+<!--
+  「点过提交 + 页面上出现带『投递』字样的东西」不等于刚投完。
+  这份夹具盯的是新加的宽松判据（一句话里同时有动作词和成功词）不许误伤：
+    · 「我的投递记录」是入口
+    · 长段落里「投递」「申请」各出现一次、字数远超上限
+  两种都不许弹卡。夹具标题带「招聘」，页面也像岗位页，所以它一旦弹就是真误报。
+-->
+<div style="padding:24px;">
+  <div style="font-size:20px;font-weight:600;">云溪 2027 校园招聘</div>
+  <div style="color:#888;margin:6px 0 16px;">广东·广州市 · 市场管培生</div>
+  <button id="btn" style="padding:8px 18px;">立即投递</button>
+  <div id="slot" style="margin-top:16px;"></div>
+  <h3 style="font-size:15px;">职位描述</h3>
+  <p>负责区域市场活动的落地与复盘。</p>
+</div>
+<script>
+document.getElementById("btn").addEventListener("click", function () {
+  setTimeout(function () {
+    var d = document.createElement("div");
+    d.className = "toast";
+    d.textContent = "我的投递记录";
+    document.getElementById("slot").appendChild(d);
+  }, 150);
+  setTimeout(function () {
+    var d = document.createElement("div");
+    d.className = "notice";
+    d.textContent = "投递前请确认简历信息完整；我们会尽快处理每一份申请，若简历通过筛选会在三个工作日内以邮件通知，预祝顺利，期待与你同行一起成长。";
+    document.getElementById("slot").appendChild(d);
+  }, 600);
+});
+</script>
+</body>
+</html>

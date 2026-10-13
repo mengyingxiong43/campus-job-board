@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<title>校园招聘</title>
+<style>body{margin:0;font:14px/1.7 "PingFang SC",sans-serif;padding:24px}
+.info{padding:3px 0}
+.title-x{font-size:19px;font-weight:700;margin:14px 0}
+button{padding:8px 20px;border:none;background:#333;color:#fff;border-radius:4px;margin-top:12px}</style>
+</head>
+<body>
+  <div class="info">职位信息</div>
+  <div class="info">职位名称</div>
+  <div class="info">职位名称</div>
+  <div class="info">职位性质</div>
+  <div class="info">职位性质</div>
+  <div class="title-x" title="Yunxi全球管理培训生">Yunxi全球管理培训生</div>
+  <button id="apply">申请职位</button>
+  <script>
+    document.getElementById("apply").addEventListener("click", () => {
+      const t = document.createElement("div");
+      t.setAttribute("role", "alert");
+      t.textContent = "投递成功";
+      document.body.appendChild(t);
+    });
+  </script>
+</body></html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>某某科技2027校园招聘</title>
+</head>
+<body>
+<div class="company-name">某某科技有限公司</div>
+<div class="job-title">某某科技 2027 管培生</div>
+<div class="jd">岗位职责：负责校园招聘、简历筛选与面试安排，欢迎应聘。</div>
+<button id="btn">立即投递</button>
+<div id="toast-slot"></div>
+<script>
+document.getElementById("btn").addEventListener("click", function () {
+  setTimeout(function () {
+    var d = document.createElement("div");
+    d.className = "toast";
+    d.textContent = "投递成功，我们会尽快与你联系";
+    document.getElementById("toast-slot").appendChild(d);
+  }, 120);
+});
+</script>
+</body>
+</html>

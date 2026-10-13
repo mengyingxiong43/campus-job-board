@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>某某科技2027校园招聘 - 我的投递</title>
+</head>
+<body>
+<div class="jd">岗位职责：校园招聘相关，投递后可在本页查看进度。简历状态会同步。</div>
+<button id="btn">我的投递记录</button>
+<div id="slot"></div>
+<script>
+// 点「我的投递记录」是查看入口，不是投递动作；出来的「已投递」是历史状态
+document.getElementById("btn").addEventListener("click", function () {
+  setTimeout(function () {
+    document.getElementById("slot").innerHTML = '<div class="status-tip">已投递</div>';
+  }, 120);
+});
+</script>
+</body>
+</html>

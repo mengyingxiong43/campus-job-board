@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>2027 Yunxi全球管理培训生计划</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.7 "PingFang SC","Helvetica Neue",sans-serif;color:#1f2329;background:#f5f6f8}
+  .hd{background:#fff;border-bottom:1px solid #e5e6eb;padding:14px 40px;display:flex;align-items:center;gap:14px}
+  .logo{width:34px;height:34px;border-radius:8px;background:#1f6feb;color:#fff;display:flex;
+        align-items:center;justify-content:center;font-weight:700;font-size:15px}
+  .brand{font-weight:600;font-size:16px}
+  .hd nav{margin-left:auto;display:flex;gap:22px;color:#4e5969;font-size:13px}
+  .wrap{max-width:820px;margin:26px auto;padding:0 20px}
+  .card{background:#fff;border:1px solid #e5e6eb;border-radius:12px;padding:24px 26px}
+  .card+.card{margin-top:16px}
+  h1{margin:0 0 6px;font-size:22px;line-height:1.4}
+  .meta{color:#86909c;font-size:13px;margin-bottom:18px}
+  .kv{color:#4e5969;margin:5px 0}
+  .kv b{color:#1f2329;font-weight:600}
+  .jd{margin-top:14px;padding-top:14px;border-top:1px dashed #e5e6eb;color:#4e5969}
+  .status-tip{display:inline-block;margin-top:18px;padding:4px 12px;border-radius:999px;
+              background:#e8f2ff;color:#1f6feb;font-size:13px}
+  .sd-Dropdown-tip{display:inline-block;margin-left:10px;color:#86909c;font-size:13px}
+</style>
+</head>
+<body>
+  <header class="hd">
+    <div class="logo">YX</div>
+    <div class="brand">Yunxi 校园招聘</div>
+    <nav><span>职位列表</span><span>投递进度</span><span>常见问题</span></nav>
+  </header>
+
+  <div class="wrap">
+    <section class="card">
+      <h1 class="job-title" title="Yunxi全球管理培训生">Yunxi全球管理培训生（万象商城 &amp; 云溪支付）</h1>
+      <div class="meta">2027 校园招聘 · 应届生 · 上海 / 深圳</div>
+      <div class="kv">职位类别：<b>管理培训生</b></div>
+      <div class="kv">学历要求：<b>本科及以上</b></div>
+      <div class="kv">发布时间：<b>2026-08-28</b></div>
+      <div class="jd">
+        岗位描述：Yunxi全球管理培训生计划，面向应届毕业生，不限专业。投递后请留意邮箱。
+        简历筛选通过后会安排在线测评。
+      </div>
+      <div id="slot"></div>
+    </section>
+  </div>
+
+<script>
+// 模拟招聘 SPA 首屏渲染：页面本身就带着「已投递」状态标签。
+// 老版扩展会把这种状态当成本次投递成功 —— 这页就是复现那一幕。
+setTimeout(function () {
+  document.getElementById("slot").innerHTML =
+    '<div class="status-tip">已投递</div>' +
+    '<div class="sd-Dropdown-tip">投递时间 2026-09-03</div>';
+}, 60);
+</script>
+</body>
+</html>

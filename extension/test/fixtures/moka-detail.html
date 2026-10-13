@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<title>星桥科技2027校园招聘</title>
+<style>body{margin:0;font:14px/1.6 "PingFang SC",sans-serif}
+header{padding:12px 24px;border-bottom:1px solid #eee}
+header img{width:130px;height:32px;display:block}
+.job-title{font-size:20px;font-weight:700;padding:20px 24px 6px}
+.act{padding:0 24px 20px}
+.act button{padding:8px 20px;border:none;background:#1f5fbf;color:#fff;border-radius:4px}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1f5fbf;color:#fff;
+  padding:10px 22px;border-radius:6px;display:none}</style></head>
+<body>
+  <header><a class="logo"><img alt="星桥科技" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='130' height='32'><rect width='130' height='32' fill='%231f5fbf'/></svg>"></a></header>
+  <div class="job-title">管理培训生</div>
+  <div class="act"><button id="apply">立即申请</button></div>
+  <div class="toast">投递成功</div>
+  <script>
+    document.getElementById("apply").addEventListener("click", () => {
+      const t = document.createElement("div");
+      t.className = "toast";
+      t.textContent = "投递成功";
+      document.body.appendChild(t);
+    });
+  </script>
+</body></html>

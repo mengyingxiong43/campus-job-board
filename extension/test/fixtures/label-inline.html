@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<title>社会招聘 - 长风物流</title>
+<style>body{margin:0;font:14px/1.7 "PingFang SC",sans-serif;padding:24px}
+.info{color:#333;margin:6px 0}
+button{padding:8px 20px;border:none;background:#0a7d55;color:#fff;border-radius:4px;margin-top:14px}</style>
+</head>
+<body>
+  <div class="info">公司名称：长风物流有限公司</div>
+  <div class="info">岗位名称：通用管理岗</div>
+  <div class="info">工作地点：上海</div>
+  <div class="info">招聘人数：2 人</div>
+  <button id="apply">立即投递</button>
+  <script>
+    document.getElementById("apply").addEventListener("click", () => {
+      const t = document.createElement("div");
+      t.setAttribute("role", "alert");
+      t.textContent = "简历投递成功";
+      document.body.appendChild(t);
+    });
+  </script>
+</body></html>

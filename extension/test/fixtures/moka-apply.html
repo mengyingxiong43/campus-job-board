@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>云溪招聘</title>
+</head>
+<body>
+<!--
+  照 mokahr 托管站（app.mokahr.com）的岗位详情页搭的，一类「前端类名全是构建哈希」的 SPA。
+  2026-10-01 实测的故障：投完页面上冒的是「已成功提交申请！」，扩展的提示词表里
+  只有「提交成功 / 申请成功」这种语序，于是卡片根本不弹 —— 她以为没识别到。
+  这里的类名 title-Ab3xK9qLm2 是照它那种哈希命名写的（真名会随站点改版变，别照抄）。
+  文件名里千万不能带 success/submitted 这类字 —— 会被「结果页网址」那条规则认成成功页，
+  不点也弹卡，这条用例就白测了（踩过一次）。
+-->
+<header style="display:flex;align-items:center;gap:18px;padding:14px 24px;border-bottom:1px solid #eee;">
+  <b id="logo" style="font-size:17px;">云溪</b>
+  <span>云溪校招</span><span>云溪社招</span><span style="margin-left:auto;">登录</span>
+</header>
+<div style="padding:10px 24px;color:#999;font-size:12px;">首页/职位列表/职位详情</div>
+<main style="display:flex;gap:32px;padding:8px 24px 24px;">
+  <div class="left-panel" style="flex:1;min-width:0;">
+    <div class="title-Ab3xK9qLm2" title="市场管培生-云溪营养品-广州"
+         style="font-size:20px;font-weight:600;">市场管培生-云溪营养品-广州</div>
+    <div style="color:#888;margin:6px 0 18px;">广东·广州市</div>
+    <button id="apply" style="padding:8px 20px;border:1px solid #2b6cb0;border-radius:6px;background:#2b6cb0;color:#fff;">申请职位</button>
+    <h3 style="margin:22px 0 8px;font-size:15px;">职位描述</h3>
+    <p>你将加入营养品业务一线，通过区域市场项目落地与跨部门协作，深入理解行业与业务运作；</p>
+    <p>入职后经历多段核心轮岗，在 3-5 年内成长为能够独立负责区域业务的骨干。</p>
+  </div>
+</main>
+<div id="toast-slot"></div>
+<script>
+// mokahr 的真实收尾提示就是这个语序 —— 字词全在，就是顺序和词表里的对不上
+document.getElementById("apply").addEventListener("click", function () {
+  setTimeout(function () {
+    var box = document.createElement("div");
+    box.className = "sd-Toast-container";
+    var inner = document.createElement("div");
+    inner.className = "sd-Toast-body";
+    var icon = document.createElement("span");
+    icon.className = "sd-Toast-icon";
+    icon.textContent = "✓";
+    var msg = document.createElement("span");
+    msg.textContent = "已成功提交申请！";
+    inner.appendChild(icon);
+    inner.appendChild(msg);
+    box.appendChild(inner);
+    document.getElementById("toast-slot").appendChild(box);
+  }, 150);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<title>市场营销岗</title>
+<style>
+  body{margin:0;font:14px/1.6 "PingFang SC","Microsoft YaHei",sans-serif;background:#f5f6f8;color:#222}
+  .top{display:flex;align-items:center;gap:24px;padding:14px 28px;background:#fff;border-bottom:1px solid #eee}
+  .brand img{width:120px;height:34px;display:block}
+  .search{position:relative;flex:1;max-width:520px;display:flex}
+  .search input{flex:1;height:38px;padding:0 12px;border:2px solid #c8102e;border-right:none;outline:none}
+  .search button{height:38px;padding:0 22px;border:none;background:#c8102e;color:#fff}
+  /* 陷阱：搜索框的历史下拉，里面挂着别家公司 —— 抓取绝不该从这里取值 */
+  .search-drop{position:absolute;top:38px;left:0;right:0;background:#fff;border:1px solid #eee;box-shadow:0 6px 18px rgba(0,0,0,.08);z-index:5}
+  .search-drop .item{display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #f5f5f5}
+  .search-drop .item .company{font-weight:600}
+  .wrap{display:flex;gap:20px;padding:22px 28px;align-items:flex-start}
+  .main{flex:1;background:#fff;border-radius:10px;padding:20px 24px}
+  .main h2{margin:0 0 14px;font-size:16px;border-left:4px solid #c8102e;padding-left:8px}
+  .kv{display:flex;gap:10px;padding:5px 0;font-size:13px;color:#555}
+  .kv .k{width:96px;color:#999}
+  .side{width:320px;background:#fff;border-radius:10px;padding:16px 18px;flex:none}
+  .side h2{margin:0 0 12px;font-size:15px;border-left:4px solid #c8102e;padding-left:8px}
+  .row{display:flex;gap:10px;padding:6px 0;font-size:13px}
+  .row .label{color:#999;width:66px;flex:none}
+  .row .value{font-weight:600}
+  .act{margin-top:16px;text-align:center}
+  .act button{padding:9px 26px;border:none;border-radius:6px;background:#c8102e;color:#fff;font-size:14px;cursor:pointer}
+  .mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+  .modal{width:520px;background:#fff;border-radius:12px;padding:26px;text-align:center}
+  .modal h3{color:#c8102e;margin:0 0 10px;font-size:19px}
+  .modal p{color:#666;font-size:13px;margin:0;line-height:1.8}
+</style></head>
+<body>
+  <div class="top">
+    <div class="brand"><img alt="国聘" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='34'><rect width='120' height='34' fill='%23c8102e'/><text x='12' y='24' font-size='20' fill='white'>IGUOPIN</text></svg>"></div>
+    <div class="search">
+      <input placeholder="请输入职位或企业名称">
+      <button>搜索</button>
+      <div class="search-drop">
+        <div class="item"><span class="company">万象商贸（北京）有限公司</span><span class="job">采购（电商运营）</span></div>
+        <div class="item"><span class="company">华宇新能源集团重庆研究院有限公司</span><span class="job">销售员</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="main">
+      <h2>基本信息</h2>
+      <div class="kv"><span class="k">姓名</span><span>示例用户</span><span class="k">性别</span><span>女</span></div>
+      <div class="kv"><span class="k">出生日期</span><span>1999-01-01</span></div>
+      <h2>求职意向</h2>
+      <div class="kv"><span class="k">期望行业</span><span>互联网</span></div>
+    </div>
+
+    <div class="side">
+      <h2>应聘信息</h2>
+      <div class="row"><span class="label">应聘职位</span><span class="value">市场营销岗</span></div>
+      <div class="row"><span class="label">应聘单位</span><span class="value">华宇新能源集团重庆研究院有限公司</span></div>
+      <div class="act"><button id="apply">申请职位</button></div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("apply").addEventListener("click", () => {
+      const m = document.createElement("div");
+      m.className = "mask";
+      m.innerHTML = '<div class="modal"><h3>申请成功</h3><p>国聘平台同时为招聘方提供简历智能筛选，招聘方有时会选择不公开简历处理进度，如一段时间内没有收到消息反馈，敬请关注更多机会。</p></div>';
+      document.body.appendChild(m);
+    });
+  </script>
+</body></html>

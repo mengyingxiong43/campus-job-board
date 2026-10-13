@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>云溪招聘</title>
+</head>
+<body>
+<!--
+  整页跳转类型的站点：点完提交，浏览器整个换到这一页，而网址里没有 success 之类的字样
+  （很多站是 /apply/finish 这种）。此时内存里「刚点过提交」已经随换页丢了，
+  只能靠 sessionStorage 带过来 —— 这份夹具专门盯这条链路。
+-->
+<header style="display:flex;align-items:center;gap:10px;padding:14px 24px;">
+  <b style="font-size:17px;">云溪</b>
+</header>
+<main style="padding:24px;">
+  <div style="font-size:22px;font-weight:600;">投递成功</div>
+  <p>感谢你投递云溪。我们会尽快阅读你的简历，结果将通过邮件通知。</p>
+  <button style="padding:8px 18px;">返回职位列表</button>
+</main>
+</body>
+</html>

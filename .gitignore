@@ -1,0 +1,19 @@
+config.ini
+data/*.csv
+data/*.html
+data/*.json
+data/*.ndjson
+data/*.jsonl
+data/*.manifest.json
+data/.scratch/
+data/.opps_progress.json*
+data/backups/
+__pycache__/
+# 打包脚本的产物（每次构建重新生成，不进版本库）
+dist/
+*.pyc
+.DS_Store
+node_modules/
+*.log
+# 工作区记忆是被工具顺手写进来的（在仓库根目录跑命令就会落一个），不属于这个项目
+.workbuddy/

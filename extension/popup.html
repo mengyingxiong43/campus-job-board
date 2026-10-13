@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+:root{color-scheme:light dark}
+body{width:288px;margin:0;padding:13px 14px 12px;
+  font:13px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:#fff;color:#15171c}
+@media (prefers-color-scheme:dark){body{background:#1d1f23;color:#e8e9ed}}
+h1{font-size:13.5px;font-weight:650;margin:0 0 9px;display:flex;align-items:baseline;gap:6px}
+h1 .ver{font-size:11px;font-weight:400;color:#9aa0a8;letter-spacing:.2px}
+.st{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#6f747d;margin-bottom:11px}
+@media (prefers-color-scheme:dark){.st{color:#9aa0a8}}
+.dot{width:8px;height:8px;border-radius:50%;background:#9aa0a8;flex:none}
+.dot.ok{background:#2f7d5d}
+.dot.err{background:#c9403a}
+button{width:100%;padding:8px 12px;margin-bottom:7px;border:1px solid #e5e7eb;border-radius:9px;
+  background:transparent;color:#15171c;font:13px inherit;font-family:inherit;cursor:pointer;text-align:left}
+button:hover{border-color:#c9ccd2}
+button.pri{border-color:#3b5bdb;background:#3b5bdb;color:#fff}
+button:disabled{opacity:.55;cursor:default}
+@media (prefers-color-scheme:dark){
+  button{border-color:#2b2e34;color:#e8e9ed}
+  button:hover{border-color:#3d4149}
+  button.pri{border-color:#7c93f5;background:#7c93f5;color:#131417}
+}
+.opt{display:flex;align-items:center;gap:8px;padding:8px 2px;margin:2px 0 6px;
+  border-top:1px solid #eceef1;font-size:12.5px;cursor:pointer}
+@media (prefers-color-scheme:dark){.opt{border-top-color:#2b2e34}}
+.opt input{margin:0;flex:none;accent-color:#3b5bdb}
+.hint{font-size:11.5px;color:#9aa0a8;margin-top:7px;line-height:1.65}
+.pend{color:#bd7a12}
+.muteline{margin-top:6px}
+.muteline button{width:auto;display:inline-block;padding:3px 9px;font-size:11.5px;border-radius:999px;
+  color:#9aa0a8;margin:0}
+</style>
+</head>
+<body>
+<h1>投递记录助手<span class="ver" id="ver"></span></h1>
+<div class="st"><span class="dot" id="dot"></span><span id="svc">正在检查本地服务…</span></div>
+<button class="pri" id="manual">记录当前页</button>
+<button id="open">打开秋招看板</button>
+<button id="flush" hidden>重试补记（<span id="q">0</span> 条存着）</button>
+
+<label class="opt"><input type="checkbox" id="auto"><span>投完自动弹卡</span></label>
+<label class="opt"><input type="checkbox" id="fab"><span>页面右侧常驻「记一笔」小标签</span></label>
+<div class="muteline" id="muteline" hidden>
+  <button id="unmute">恢复被屏蔽的站点（<span id="mn">0</span> 个）</button>
+</div>
+
+<div class="hint" id="hint">
+  自动弹卡：只在你点了「提交 / 投递 / 申请」之后，或者落在投递成功结果页时才弹。
+  光是打开招聘网站、页面上写着「已投递」，不会弹。<br>
+  右侧那颗「记一笔」是兜底 —— 自动识别漏了（站点换个说法就漏）就点它，两秒记上。
+  标签可以上下拖；鼠标移上去点右上角的 × 就这个站不再显示，下面那个按钮能恢复。
+</div>
+<script src="popup.js"></script>
+</body>
+</html>

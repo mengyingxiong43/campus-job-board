@@ -1,0 +1,16 @@
+#!/bin/bash
+# push 之前跑一遍**闸门一**（自检 + 启动脚本语法 + 主程序编译），约 30 秒。
+#
+# 只跑闸门一，是因为它不需要浏览器、哪儿都能跑，30 秒内出结果，
+# 拦得住「自检挂了 / 启动脚本语法错了 / 主程序编译不过」这三类低级错误。
+# 完整的两道闸门（含浏览器里的看板体检）跑一次约 2 分钟，留给 CI 或手动：
+#   bash tools/ci-gate.sh
+#
+# 万一要临时跳过（比如你在飞机上、或者明知道这提交就是要先存个盘）：
+#   git push --no-verify
+#
+# 这条钩子对**本仓库**生效，靠的是仓库里的这一句配置（我已经设好了）：
+#   git config core.hooksPath .githooks
+# 换台机器 clone 之后要重新设一次；不想用就：git config --unset core.hooksPath
+
+SKIP_BROWSER=1 bash tools/ci-gate.sh
