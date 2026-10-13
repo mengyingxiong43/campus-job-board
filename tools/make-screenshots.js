@@ -9,6 +9,9 @@
 // 依赖 puppeteer-core（不下载浏览器，只连现成的）：
 //   npm i puppeteer-core  或  PUPPETEER_DIR=/path/to/node_modules node tools/make-screenshots.js
 //
+// 只想重出其中一张（改了一张图不想把 15 张全重拍、也不想让别的图跟着变）：
+//   ONLY=shot-opps node tools/make-screenshots.js
+//
 // 注意：截图里会出现数据。**给开源仓库用的图必须拿演示数据拍**
 // （tools/make-demo-data.py 生成），别对着真实数据按快门。
 
@@ -18,6 +21,8 @@ const path = require('path');
 const BASE = process.env.BASE || 'http://127.0.0.1:8788';
 const SAMPLES = process.env.SAMPLES || path.join(__dirname, '..', 'samples');
 const W = 1100;
+// ONLY=子串 → 只拍文件名里含这个子串的那几张（见上面用法）。空 = 全拍。
+const ONLY = (process.env.ONLY || '').trim();
 
 const puppeteer = (() => {
   const dirs = [
@@ -195,6 +200,7 @@ async function assertDemoData(browser) {
   const report = [];
 
   for (const s of SHOTS) {
+    if (ONLY && !s.file.includes(ONLY)) continue;
     const { page, errs } = await newPage(browser, s);
     await gotoBoard(page, s.hash);
     // 深色那张：把「深色」这一档显式写进浏览器再刷一次，而不是只靠系统偏好模拟 ——
@@ -289,7 +295,7 @@ async function assertDemoData(browser) {
   }
 
   // ---- 「同步飞书进度」按钮 + 结果提示 ----
-  {
+  if (!ONLY || SYNC_FILE.includes(ONLY)) {
     const { page, errs } = await newPage(browser, { h: 760 });
     await page.evaluateOnNewDocument(FAKE_SYNC);
     await gotoBoard(page, '#apps');
