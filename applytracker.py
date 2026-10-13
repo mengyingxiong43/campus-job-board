@@ -1109,12 +1109,16 @@ def parse_feishu_apps(obj: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def import_apps(cfg: Config, dry_run: bool = False,
-                rows: Optional[List[Dict[str, Any]]] = None) -> Tuple[int, int, int, List[Dict[str, Any]]]:
+                rows: Optional[List[Dict[str, Any]]] = None,
+                source_label: str = "飞书表") -> Tuple[int, int, int, List[Dict[str, Any]]]:
     """把飞书表里的历史投递记录合并进本地 CSV。
 
     幂等：同公司 + 同岗位已经在了就跳过 —— 不重复导入，也不覆盖你在看板上改过的状态。
     返回 (新增, 跳过, 待投数, 待投清单)。传 rows 可以跳过网络（自检用）。
     写盘跟别处共用 mutate_apps（同一把锁 + 同一份保列逻辑），不再自己 _write_all。
+
+    source_label 是写进「来源」列的字样 —— 飞书那条路保持默认「飞书表」不变，
+    --import-file（用户自己的投递表）传「文件导入」，好在看板上分得清记录是哪来的。
     """
     if rows is None:
         applied, pending = fetch_apps_from_feishu(cfg)
@@ -1140,7 +1144,7 @@ def import_apps(cfg: Config, dry_run: bool = False,
                 # 别拿导入那一刻顶上去：那会让「今天投了几家」这些数凭空多出来。
                 "投递时间": r["投递时间"],
                 "网页链接": r["网页链接"],
-                "来源": "飞书表",
+                "来源": source_label,
                 "备注": r["备注"],
                 "更新时间": now_str(),
             })
@@ -1159,11 +1163,12 @@ def import_apps(cfg: Config, dry_run: bool = False,
 
     n_added, n_skipped = mutate_apps(cfg, _do)
     if pending:
-        _write_pending(cfg, pending)
+        _write_pending(cfg, pending, source_label=source_label)
     return n_added, n_skipped, len(pending), pending
 
 
-def _write_pending(cfg: Config, rows: List[Dict[str, Any]]) -> None:
+def _write_pending(cfg: Config, rows: List[Dict[str, Any]],
+                   source_label: str = "飞书表") -> None:
     """「收藏了但还没投」的岗位单独存一份，不混进投递进度。"""
     os.makedirs(os.path.dirname(os.path.abspath(cfg.pending_csv)), exist_ok=True)
     tmp = cfg.pending_csv + ".tmp"
@@ -1178,11 +1183,211 @@ def _write_pending(cfg: Config, rows: List[Dict[str, Any]]) -> None:
                 "状态": "未投递",
                 "投递时间": "",
                 "网页链接": r["网页链接"],
-                "来源": "飞书表",
+                "来源": source_label,
                 "备注": (r["备注"] + (" · " + r["_地点"] if r.get("_地点") else "")).strip(" ·"),
                 "更新时间": now_str(),
             })
     os.replace(tmp, cfg.pending_csv)
+
+
+# ---------------------------------------------------------------------------
+# 从「用户自己的投递表」导入（--import-file）
+# ---------------------------------------------------------------------------
+#
+# 原来只有 --import-apps（从飞书表格导）—— 普通用户没有飞书，这条路走不通。
+# 这一组读他自己 Excel 另存的 CSV / 导出的 TSV：表头自动认、状态和日期归一，
+# 去重 / 排序 / 写盘全部复用 import_apps（同一把锁 + 同一份保列逻辑）。
+# 零第三方依赖：只用标准库 csv（Excel 那份要用户先「另存为 CSV」）。
+
+# 表头别名：用户自己的表五花八门，每列给一串常见写法。
+# 比对前会**去掉括号里的补充说明**（「投递时间（北京时间）」也认）、去空白、转小写。
+APP_FILE_HEADERS: Dict[str, List[str]] = {
+    "公司名称": ["公司名称", "公司", "企业", "单位", "应聘公司", "公司名", "company"],
+    "岗位名称": ["岗位名称", "岗位", "职位", "应聘岗位", "职位名称", "position"],
+    "状态": ["状态", "投递状态", "进度", "status"],
+    "投递时间": ["投递时间", "投递日期", "投递日", "日期", "时间", "申请时间", "date"],
+    "网页链接": ["网页链接", "链接", "网址", "招聘链接", "url"],
+    "备注": ["备注", "说明", "note", "remark"],
+}
+# 这两个列缺任一就没法导 —— 报错时要说清缺哪个。
+APP_FILE_REQUIRED = ["公司名称", "岗位名称"]
+
+# 文件里多认几个状态写法（用户自己的表比飞书表更随意）。
+# ⚠️ **只加不改**：飞书那条路径用的是 APP_STATUS_MAP / app_map_status，
+# 它俩一个字符都不许动，否则 --import-apps / --apps-sync 的行为会跟着变。
+APP_FILE_STATUS_EXTRA: Dict[str, str] = {
+    "投递": "已投递", "已投": "已投递", "已投简历": "已投递",
+    "筛过": "简历通过", "通过": "简历通过", "已过简历": "简历通过", "简历过": "简历通过",
+    "面试中": "面试", "初面": "面试", "复面": "面试",
+    "意向": "Offer",
+}
+# 「收藏了但还没投」——跟飞书那条路同一个口径（APP_NOT_APPLIED），单独进待投清单
+APP_FILE_STATUS_EXTRA.update({k: "未投递" for k in APP_NOT_APPLIED})
+_APP_STATUS_MAP_KEYS = {k.lower() for k in APP_STATUS_MAP}
+
+
+def _app_file_hkey(s: str) -> str:
+    """表头比对的键：去括号里的补充说明、去空白、转小写。"""
+    s = re.sub(r"[（(][^）)]*[）)]", "", (s or ""))
+    return re.sub(r"[\s\u3000]+", "", s).lower()
+
+
+def app_file_delim(head_line: str) -> str:
+    """按首行判分隔符。
+
+    制表符优先 —— 它几乎不可能出现在某个列名**里面**；其次逗号、分号比谁多。
+    """
+    if "\t" in head_line:
+        return "\t"
+    return ";" if head_line.count(";") > head_line.count(",") else ","
+
+
+def read_app_file(path: str) -> Tuple[List[str], List[List[str]]]:
+    """读用户自己的投递表 → (表头, 数据行)，整行空的跳过。
+
+    编码按 UTF-8-BOM → UTF-8 → GBK 依次试（Windows 的 Excel「另存为 CSV」默认就是 GBK）。
+    文件不存在 / 是目录 / 读不了 / 编码认不出，一律抛 ValueError —— 由命令行转成人话 + 退出码 1，
+    不许把裸 traceback 甩给用户。
+    """
+    if not os.path.exists(path):
+        raise ValueError("找不到这个文件：%s" % path)
+    if os.path.isdir(path):
+        raise ValueError("这是个目录，不是文件：%s" % path)
+    try:
+        with open(path, "rb") as f:
+            raw = f.read()
+    except OSError as e:
+        raise ValueError("这个文件读不了：%s（%s）" % (path, e))
+    if not raw.strip():
+        raise ValueError("文件是空的：%s" % path)
+    text = ""
+    for enc in ("utf-8-sig", "utf-8", "gbk"):
+        try:
+            text = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        raise ValueError("这个文件的编码认不出来（试过 UTF-8 和 GBK）：%s\n"
+                         "  用记事本打开，另存为 UTF-8 再来一次。" % path)
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    delim = app_file_delim(text.split("\n", 1)[0])
+    grid = [r for r in csv.reader(text.split("\n"), delimiter=delim)
+            if any((c or "").strip() for c in r)]
+    if not grid:
+        raise ValueError("文件里一行内容都没有：%s" % path)
+    return grid[0], grid[1:]
+
+
+def app_file_headmap(cols: List[str]) -> Dict[str, int]:
+    """表头行 → {看板列名: 列下标}。认不出来的列直接忽略。"""
+    alias: Dict[str, str] = {}
+    for col, names in APP_FILE_HEADERS.items():
+        for n in names:
+            alias.setdefault(_app_file_hkey(n), col)
+    out: Dict[str, int] = {}
+    for i, c in enumerate(cols):
+        real = alias.get(_app_file_hkey(c))
+        if real and real not in out:
+            out[real] = i
+    return out
+
+
+def app_file_date(s: str) -> str:
+    """投递时间归一成 YYYY-MM-DD；认不出来返回空串。
+
+    认 `2026-10-01` / `2026/10/1` / `2026.10.1` / `2026年10月1日`，
+    后面跟着时间（`2026-10-01 13:20`）也照认（只取日期那截）。
+
+    ⚠️ **认不出绝不用「今天」顶上** —— 那会让「今天投了几家」凭空多出来，
+    理由见 import_apps 里那条注释。页面显示「—」、排在最后，比一个错的日期好。
+    """
+    m = re.match(r"^(\d{4})\s*[-/.年]\s*(\d{1,2})\s*[-/.月]\s*(\d{1,2})\s*日?",
+                 (s or "").strip())
+    if not m:
+        return ""
+    try:
+        return datetime(int(m.group(1)), int(m.group(2)), int(m.group(3))).strftime("%Y-%m-%d")
+    except ValueError:
+        return ""
+
+
+def app_file_status(s: str) -> Tuple[str, str]:
+    """状态 → (看板标准状态, 认不出来时的原值)。
+
+    认不出来**不丢信息**：落「已投递」，原值返回给调用方写进备注前缀。
+    表里**没写**状态（空）不算「认不出」—— 当已投递，不留前缀。
+    """
+    raw = (s or "").strip()
+    if not raw:
+        return "已投递", ""
+    if raw in APP_FILE_STATUS_EXTRA:
+        return APP_FILE_STATUS_EXTRA[raw], ""
+    std = app_map_status(raw)
+    # app_map_status 认不出来时也兜底成「已投递」—— 只有「本来就在词表里」才算真认出来了
+    if std != "已投递" or raw.lower() in _APP_STATUS_MAP_KEYS:
+        return std, ""
+    return "已投递", raw
+
+
+def app_file_records(headmap: Dict[str, int], body: List[List[str]]) -> List[Dict[str, Any]]:
+    """表头映射 + 数据行 → import_apps 认的那种记录。"""
+    out: List[Dict[str, Any]] = []
+    for row in body:
+
+        def g(col: str) -> str:
+            i = headmap.get(col)
+            if i is None:
+                return ""
+            return ((row[i] if i < len(row) else "") or "").strip()
+
+        company = g("公司名称")
+        position = g("岗位名称")
+        if not (company or position):
+            continue                        # 表尾/中间的整行空，跳过
+        status, raw_status = app_file_status(g("状态"))
+        note = g("备注")
+        if raw_status:
+            note = ("原状态：%s" % raw_status) + (" · " + note if note else "")
+        if not company:
+            # 公司名空着、只写了岗位 —— 不猜（猜错的公司名会串到机会库的「我投过的公司」
+            # 匹配里去），用占位名，跟飞书那条路一个处理。
+            company = "未填公司"
+            note = "原表没填公司名" + (" · " + note if note else "")
+        out.append({
+            "公司名称": company,
+            "岗位名称": position,
+            "状态": status,
+            "投递时间": app_file_date(g("投递时间")),
+            "网页链接": app_pick_url(g("网页链接")),
+            "备注": note.strip(" ·"),
+        })
+    return out
+
+
+def import_apps_from_file(path: str, cfg: Config, dry_run: bool = False) -> Dict[str, Any]:
+    """把用户自己的投递表导进看板，返回一份统计（给命令行打印用）。
+
+    去重 / 排序 / 写盘**全部交给 import_apps**（同一把锁、同一份保列逻辑），
+    这里只做「读文件 + 认表头 + 归一」。产不出来就抛 ValueError（人话）。
+    """
+    head, body = read_app_file(path)
+    headmap = app_file_headmap(head)
+    missing = [c for c in APP_FILE_REQUIRED if c not in headmap]
+    if missing:
+        raise ValueError(
+            "这份表里找不到必需的列：%s\n"
+            "  读到的表头是：%s\n"
+            "  列名可以写成这些别名之一：%s\n"
+            "  认不出来的列会被忽略，不影响导入。"
+            % ("、".join(missing), " | ".join(str(c) for c in head),
+               " / ".join(APP_FILE_HEADERS[missing[0]])))
+    recs = app_file_records(headmap, body)
+    added, skipped, n_pending, pending = import_apps(
+        cfg, dry_run=dry_run, rows=recs, source_label="文件导入")
+    return {"name": os.path.basename(path), "read": len(body), "added": added,
+            "skipped": skipped, "pending": n_pending, "pending_rows": pending,
+            "dry_run": dry_run}
 
 
 # ---------------------------------------------------------------------------
@@ -10703,6 +10908,141 @@ def self_test() -> int:
         finally:
             cfg.app_csv, cfg.pending_csv = keep_app_csv, keep_pending
 
+        # ---- 从「用户自己的投递表」导入（--import-file）----
+        # 真写临时 CSV、真调 import_apps_from_file、真读回来看 —— 不看返回值就下结论。
+        keep_app_csv, keep_pending = cfg.app_csv, cfg.pending_csv
+        _ff = tempfile.mkdtemp(prefix="at-impfile-")
+        cfg.app_csv = os.path.join(_ff, "imported.csv")
+        cfg.pending_csv = os.path.join(_ff, "imported_pending.csv")
+        try:
+            def _digest(p: str) -> str:
+                if not os.path.exists(p):
+                    return ""
+                with open(p, "rb") as _f:
+                    return hashlib.sha256(_f.read()).hexdigest()
+
+            # ① 别名表头（公司/职位/投递日期）+ 分号分隔 + 状态归一
+            _p1 = os.path.join(_ff, "my_apps_semicolon.csv")
+            with open(_p1, "w", encoding="utf-8", newline="") as _f:
+                _f.write("公司;职位;投递日期;进度;备注\n"
+                         "星桥科技;电商运营;2026-10-01;面试中;内推\n"
+                         "长风物流;供应链管培生;2026/10/2;筛过;\n")
+            _st1 = import_apps_from_file(_p1, cfg)
+            _g1 = {r["公司名称"]: r for r in load_apps(cfg)}
+            check("文件导入：别名表头（公司/职位/投递日期）+ 分号分隔认得出",
+                  _st1["read"] == 2 and _st1["added"] == 2 and
+                  set(_g1) == {"星桥科技", "长风物流"}, str(_st1))
+            check("文件导入：状态归一「面试中」→ 面试",
+                  _g1["星桥科技"]["状态"] == "面试", _g1["星桥科技"]["状态"])
+            check("文件导入：状态归一「筛过」→ 简历通过",
+                  _g1["长风物流"]["状态"] == "简历通过", _g1["长风物流"]["状态"])
+            check("文件导入：投递时间多格式都归一成 YYYY-MM-DD（连字符 / 斜杠）",
+                  _g1["星桥科技"]["投递时间"] == "2026-10-01" and
+                  _g1["长风物流"]["投递时间"] == "2026-10-02",
+                  "%s / %s" % (_g1["星桥科技"]["投递时间"], _g1["长风物流"]["投递时间"]))
+
+            # ② 点号 / 中文日期 + 认不出的日期留空 + 认不出的状态不丢信息
+            _p2 = os.path.join(_ff, "my_apps_dates.csv")
+            with open(_p2, "w", encoding="utf-8", newline="") as _f:
+                _f.write("公司名称,岗位名称,投递时间,状态\n"
+                         "云溪银行,管培生,2026.10.3,待跟进\n"
+                         "云溪信托,风控,2026年10月4日,笔试\n"
+                         "云溪证券,投研,改天再说,\n")
+            import_apps_from_file(_p2, cfg)
+            _g2 = {r["公司名称"]: r for r in load_apps(cfg)}
+            check("文件导入：日期「2026.10.3」也认成 YYYY-MM-DD",
+                  _g2["云溪银行"]["投递时间"] == "2026-10-03", _g2["云溪银行"]["投递时间"])
+            check("文件导入：日期「2026年10月4日」也认成 YYYY-MM-DD",
+                  _g2["云溪信托"]["投递时间"] == "2026-10-04", _g2["云溪信托"]["投递时间"])
+            check("文件导入：认不出的日期留空，绝不拿今天顶上去",
+                  _g2["云溪证券"]["投递时间"] == "" and
+                  now_str()[:10] != _g2["云溪证券"]["投递时间"],
+                  "读到的是 %r" % (_g2["云溪证券"]["投递时间"],))
+            check("文件导入：认不出的状态落「已投递」，原值写进备注（不丢信息）",
+                  _g2["云溪银行"]["状态"] == "已投递" and
+                  "原状态：待跟进" in _g2["云溪银行"]["备注"],
+                  "%s / %s" % (_g2["云溪银行"]["状态"], _g2["云溪银行"]["备注"]))
+            check("文件导入：状态列空着时不写「原状态」（空 ≠ 认不出）",
+                  _g2["云溪证券"]["状态"] == "已投递" and
+                  "原状态" not in _g2["云溪证券"]["备注"], _g2["云溪证券"]["备注"])
+
+            # ③ 同公司同岗位的表重复导 → 全部跳过（幂等）
+            _n_before = len(load_apps(cfg))
+            _st3 = import_apps_from_file(_p2, cfg)
+            check("文件导入：同公司同岗位重复导入被跳过、不新增（幂等）",
+                  _st3["added"] == 0 and _st3["skipped"] == 3 and
+                  len(load_apps(cfg)) == _n_before, str(_st3))
+
+            # ④ --dry-run 一个字节都不许写 —— 比对文件哈希，不看返回值
+            _p4 = os.path.join(_ff, "my_apps_new.csv")
+            with open(_p4, "w", encoding="utf-8", newline="") as _f:
+                _f.write("公司名称,岗位名称,状态,投递时间\n"
+                         "新桥科技,测试开发,已投递,2026-10-05\n")
+            _h_main, _h_pend = _digest(cfg.app_csv), _digest(cfg.pending_csv)
+            _st4 = import_apps_from_file(_p4, cfg, dry_run=True)
+            check("文件导入：--dry-run 能算出「要新增 1 条」",
+                  _st4["added"] == 1 and _st4["dry_run"] is True and
+                  "新桥科技" not in {r["公司名称"] for r in load_apps(cfg)}, str(_st4))
+            check("文件导入：--dry-run 真的没写盘（投递表/待投表哈希前后一致）",
+                  _digest(cfg.app_csv) == _h_main and _digest(cfg.pending_csv) == _h_pend,
+                  "前 %s / 后 %s" % (_h_main[:12], _digest(cfg.app_csv)[:12]))
+
+            # ⑤ TSV + UTF-8-BOM + 链接/备注列 + 来源标记 + 待投清单
+            _p5 = os.path.join(_ff, "my_apps_tsv.tsv")
+            with open(_p5, "w", encoding="utf-8-sig", newline="") as _f:
+                _f.write("公司名称\t岗位名称\t状态\t投递时间\t网址\t说明\n"
+                         "明湖软件\t后端开发\tOC!\t2026-10-06 13:20\thttps://x.com/j\t校招\n"
+                         "星洲数据\t数据分析\t收藏\t2026-10-07\t\t先存着\n")
+            _st5 = import_apps_from_file(_p5, cfg)
+            _g5 = {r["公司名称"]: r for r in load_apps(cfg)}
+            check("文件导入：Tab 分隔 + UTF-8-BOM 也能读",
+                  _st5["added"] == 1 and _st5["read"] == 2 and "明湖软件" in _g5, str(_st5))
+            check("文件导入：状态归一「OC!」→ Offer、带时间的日期只取到天",
+                  _g5["明湖软件"]["状态"] == "Offer" and
+                  _g5["明湖软件"]["投递时间"] == "2026-10-06",
+                  "%s / %s" % (_g5["明湖软件"]["状态"], _g5["明湖软件"]["投递时间"]))
+            check("文件导入：链接列被认出来", _g5["明湖软件"]["网页链接"] == "https://x.com/j",
+                  _g5["明湖软件"]["网页链接"])
+            check("文件导入：「收藏」不算投过，单独进待投清单",
+                  _st5["pending"] == 1 and os.path.exists(cfg.pending_csv),
+                  "待投 %d" % _st5["pending"])
+            check("文件导入：写进去的记录，来源列是「文件导入」",
+                  all(r["来源"] == "文件导入" for r in load_apps(cfg)) and
+                  "文件导入" in open(cfg.pending_csv, encoding="utf-8-sig").read())
+
+            # ⑥ 出错要说人话（ValueError，不是裸 traceback）
+            _p6 = os.path.join(_ff, "my_apps_bad.csv")
+            with open(_p6, "w", encoding="utf-8", newline="") as _f:
+                _f.write("岗位名称,状态\n后端开发,已投递\n")
+            try:
+                import_apps_from_file(_p6, cfg)
+                _err6 = ""
+            except ValueError as _e6:
+                _err6 = str(_e6)
+            check("文件导入：缺「公司名称」列时报错，且说清缺哪一列",
+                  "找不到必需的列" in _err6 and "公司名称" in _err6, _err6[:60])
+            try:
+                import_apps_from_file(os.path.join(_ff, "根本没有这个文件.csv"), cfg)
+                _err7 = ""
+            except ValueError as _e7:
+                _err7 = str(_e7)
+            check("文件导入：文件不存在时说人话（不许抛裸 traceback）",
+                  "找不到这个文件" in _err7, _err7[:60])
+
+            # ⑦ 表头带括号补充说明也认（Excel 用户常见："投递时间（北京时间）"）
+            _p7 = os.path.join(_ff, "my_apps_paren.csv")
+            with open(_p7, "w", encoding="utf-8", newline="") as _f:
+                _f.write("公司名称（必填）,岗位名称,投递时间（北京时间）,状态（选填）\n"
+                         "青岚科技,前端,2026-10-08,已投递\n")
+            _st7 = import_apps_from_file(_p7, cfg)
+            _g7 = {r["公司名称"]: r for r in load_apps(cfg)}
+            check("文件导入：表头带括号补充说明（公司名称（必填））也认得出",
+                  _st7["added"] == 1 and _g7.get("青岚科技", {}).get("投递时间") == "2026-10-08",
+                  str(_st7))
+        finally:
+            cfg.app_csv, cfg.pending_csv = keep_app_csv, keep_pending
+            shutil.rmtree(_ff, ignore_errors=True)
+
         # ---- 投递进度跟飞书表持续同步（表里改状态，看板跟着变） ----
         keep_app_csv, keep_pending = cfg.app_csv, cfg.pending_csv
         keep_sync_json, keep_ttl = cfg.apps_sync_json, cfg.apps_ttl
@@ -13192,9 +13532,12 @@ def main() -> int:
     ap.add_argument("--opps-sync", action="store_true", help="立刻从飞书同步一次机会库（表很大，要等一会）")
     ap.add_argument("--import-apps", action="store_true",
                     help="从飞书表格导入历史投递记录（一次性，可重复跑，不会重复导入）")
+    ap.add_argument("--import-file", default="", metavar="路径",
+                    help="把自己以前的投递表导进看板（Excel 先另存为 CSV / TSV）")
     ap.add_argument("--apps-sync", action="store_true",
                     help="立刻从飞书同步一次投递进度（表里改了状态，看板跟着变）")
-    ap.add_argument("--dry-run", action="store_true", help="配合 --import-apps：只看要导入什么，不写文件")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="配合 --import-apps / --import-file：只看要导入什么，不写文件")
     ap.add_argument("--self-test", action="store_true", help="自检")
     args = ap.parse_args()
 
@@ -13226,6 +13569,29 @@ def main() -> int:
                 print("    · %s %s" % (r["公司名称"], r["岗位名称"]))
             if n_pending > 10:
                 print("    · …还有 %d 条" % (n_pending - 10))
+        return 0
+
+    if args.import_file:
+        try:
+            st = import_apps_from_file(args.import_file, cfg, dry_run=args.dry_run)
+        except ValueError as e:
+            print("✗ " + str(e))
+            return 1
+        head = "（演练，没写文件）" if st["dry_run"] else ""
+        print("从 %s 读入 %d 行 → 新增 %d 条%s、跳过 %d 条（已存在）、待投递 %d 条"
+              % (st["name"], st["read"], st["added"], head, st["skipped"], st["pending"]))
+        if not st["dry_run"]:
+            print("→ " + cfg.app_csv)
+        if st["pending"]:
+            if st["dry_run"]:
+                print("· 还有 %d 条状态是「未投递」，真跑时会单独存到：" % st["pending"])
+            else:
+                print("· 这 %d 条状态是「未投递」，没混进投递进度（会算多总数），" % st["pending"])
+                print("  单独存到了： %s" % cfg.pending_csv)
+            for r in st["pending_rows"][:10]:
+                print("    · %s %s" % (r["公司名称"], r["岗位名称"]))
+            if st["pending"] > 10:
+                print("    · …还有 %d 条" % (st["pending"] - 10))
         return 0
 
     if args.apps_sync:
